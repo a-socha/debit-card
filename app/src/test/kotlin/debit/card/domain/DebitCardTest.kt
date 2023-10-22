@@ -65,7 +65,7 @@ internal class DebitCardTest {
         // then
         assertThat(result.pendingChanges())
                 .containsExactly(
-                        DebitCardEvent.TransactionProcessed(firstTransactionId, "-199.01".bd)
+                        DebitCardEvent.TransactionAccepted(firstTransactionId, "-199.01".bd)
                 )
     }
 
@@ -81,8 +81,8 @@ internal class DebitCardTest {
 
         // then
         assertThat(result.pendingChanges()).containsExactly(
-                DebitCardEvent.TransactionProcessed(firstTransactionId, "10".bd),
-                DebitCardEvent.TransactionProcessed(secondTransactionId, "-200.01".bd)
+                DebitCardEvent.TransactionAccepted(firstTransactionId, "10".bd),
+                DebitCardEvent.TransactionAccepted(secondTransactionId, "-200.01".bd)
         )
     }
 
@@ -107,15 +107,15 @@ internal class DebitCardTest {
 
         // then
         with(result.pendingChanges()) {
-            assertThat(this[0]).isInstanceOf(DebitCardEvent.TransactionProcessed::class.java)
-            assertThat(this[1]).isInstanceOf(DebitCardEvent.TransactionProcessed::class.java)
-            assertThat(this[2]).isInstanceOf(DebitCardEvent.TransactionProcessed::class.java)
-            assertThat(this[3]).isInstanceOf(DebitCardEvent.TransactionProcessed::class.java)
+            assertThat(this[0]).isInstanceOf(DebitCardEvent.TransactionAccepted::class.java)
+            assertThat(this[1]).isInstanceOf(DebitCardEvent.TransactionAccepted::class.java)
+            assertThat(this[2]).isInstanceOf(DebitCardEvent.TransactionAccepted::class.java)
+            assertThat(this[3]).isInstanceOf(DebitCardEvent.TransactionAccepted::class.java)
 
             assertThat(this[4]).isInstanceOf(DebitCardEvent.TransactionRejected::class.java)
 
-            assertThat(this[5]).isInstanceOf(DebitCardEvent.TransactionProcessed::class.java)
-            assertThat(this[6]).isInstanceOf(DebitCardEvent.TransactionProcessed::class.java)
+            assertThat(this[5]).isInstanceOf(DebitCardEvent.TransactionAccepted::class.java)
+            assertThat(this[6]).isInstanceOf(DebitCardEvent.TransactionAccepted::class.java)
             assertThat(this[7]).isInstanceOf(DebitCardEvent.TransactionRejected::class.java)
         }
     }
@@ -179,7 +179,7 @@ internal class DebitCardTest {
         // then
         assertThat(result.pendingChanges()).containsExactly(
                 DebitCardEvent.CardBlocked(),
-                DebitCardEvent.TransactionProcessed(firstTransactionId, "10".bd)
+                DebitCardEvent.TransactionAccepted(firstTransactionId, "10".bd)
         )
 
     }
@@ -198,7 +198,7 @@ internal class DebitCardTest {
         assertThat(result.pendingChanges()).containsExactly(
                 DebitCardEvent.CardBlocked(),
                 DebitCardEvent.CardUnblocked(),
-                DebitCardEvent.TransactionProcessed(firstTransactionId, "-10".bd)
+                DebitCardEvent.TransactionAccepted(firstTransactionId, "-10".bd)
         )
 
     }

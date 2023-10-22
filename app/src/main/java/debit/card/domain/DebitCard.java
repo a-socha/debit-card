@@ -1,8 +1,8 @@
 package debit.card.domain;
 
+import debit.card.view.DebitCardSummary;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -40,12 +40,12 @@ class DebitCard {
     }
 
     private DebitCard payOffCard(PayOff transaction) {
-        return applyWithAppend(new DebitCardEvent.TransactionProcessed(transaction.transactionId(), transaction.value()));
+        return applyWithAppend(new DebitCardEvent.TransactionAccepted(transaction.transactionId(), transaction.value()));
     }
 
     private DebitCard chargeCard(ChargeCommand transaction) {
         if (!blocked && hasEnoughMoney(transaction.value())) {
-            return applyWithAppend(new DebitCardEvent.TransactionProcessed(transaction.transactionId(), transaction.value()));
+            return applyWithAppend(new DebitCardEvent.TransactionAccepted(transaction.transactionId(), transaction.value()));
         }
         return applyWithAppend(new DebitCardEvent.TransactionRejected(transaction.transactionId(), transaction.value()));
     }
@@ -59,7 +59,7 @@ class DebitCard {
     private DebitCard applyWithAppend(DebitCardEvent debitCardEvent) {
         return switch (debitCardEvent) {
             case DebitCardEvent.LimitAssigned created -> limitAssigned(created);
-            case DebitCardEvent.TransactionProcessed transactionProcessed -> transactionAccepted(transactionProcessed);
+            case DebitCardEvent.TransactionAccepted transactionAccepted -> transactionAccepted(transactionAccepted);
             case DebitCardEvent.TransactionRejected transactionRejected -> transactionRejected(transactionRejected);
             case DebitCardEvent.CardBlocked cardBlocked -> cardBlocked(cardBlocked);
             case DebitCardEvent.CardBlockedRejected cardBlockedRejected -> cardBlockedRejected(cardBlockedRejected);
@@ -80,8 +80,8 @@ class DebitCard {
         return new DebitCard(cardUUID, registerChange(cardUnblocked), debitLimit, balance, false);
     }
 
-    private DebitCard transactionAccepted(DebitCardEvent.TransactionProcessed transactionProcessed) {
-        return new DebitCard(cardUUID, registerChange(transactionProcessed), debitLimit, balance.add(transactionProcessed.value()), blocked);
+    private DebitCard transactionAccepted(DebitCardEvent.TransactionAccepted transactionAccepted) {
+        return new DebitCard(cardUUID, registerChange(transactionAccepted), debitLimit, balance.add(transactionAccepted.value()), blocked);
     }
 
     private DebitCard transactionRejected(DebitCardEvent.TransactionRejected transactionRejected) {
@@ -108,7 +108,7 @@ class DebitCard {
         return createNew(UUID.randomUUID());
     }
 
-    private static DebitCard createNew(UUID cardUUID) {
+    static DebitCard createNew(UUID cardUUID) {
         return new DebitCard(cardUUID, List.empty(), none(), ZERO, false);
     }
 
@@ -142,33 +142,50 @@ class DebitCard {
         }
         return this;
     }
+
+    DebitCardSummary toSummary() {
+        return new DebitCardSummary(
+                cardUUID,
+                balance,
+                debitLimit,
+                blocked
+        );
+    }
 }
 
 
 sealed interface DebitCardEvent permits
-        DebitCardEvent.LimitAssigned,
-        DebitCardEvent.TransactionProcessed,
-        DebitCardEvent.TransactionRejected,
-        DebitCardEvent.CardBlocked,
-        DebitCardEvent.CardBlockedRejected,
-        DebitCardEvent.CardUnblocked {
+        DebitCardEvent.Success,
+        DebitCardEvent.Failure {
 
-
-    record LimitAssigned(BigDecimal limit) implements DebitCardEvent {
+    sealed interface Success extends DebitCardEvent permits
+            DebitCardEvent.LimitAssigned,
+            DebitCardEvent.TransactionAccepted,
+            DebitCardEvent.CardBlocked,
+            DebitCardEvent.CardUnblocked {
     }
 
-    record TransactionProcessed(UUID uuid, BigDecimal value) implements DebitCardEvent {
+    sealed interface Failure extends DebitCardEvent permits
+            DebitCardEvent.TransactionRejected,
+            DebitCardEvent.CardBlockedRejected {
     }
 
-    record TransactionRejected(UUID uuid, BigDecimal value) implements DebitCardEvent {
+    record LimitAssigned(BigDecimal limit) implements DebitCardEvent.Success {
     }
 
-    record CardBlockedRejected() implements DebitCardEvent {
+    record TransactionAccepted(UUID uuid, BigDecimal value) implements DebitCardEvent.Success {
+
     }
 
-    record CardBlocked() implements DebitCardEvent {
+    record TransactionRejected(UUID uuid, BigDecimal value) implements DebitCardEvent.Failure {
     }
 
-    record CardUnblocked() implements DebitCardEvent {
+    record CardBlockedRejected() implements DebitCardEvent.Failure {
+    }
+
+    record CardBlocked() implements DebitCardEvent.Success {
+    }
+
+    record CardUnblocked() implements DebitCardEvent.Success {
     }
 }
