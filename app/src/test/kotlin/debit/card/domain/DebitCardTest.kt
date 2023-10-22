@@ -120,6 +120,101 @@ internal class DebitCardTest {
         }
     }
 
+    @Test
+    fun `should allow to block a card when it is not blocked`() {
+        // given
+        val card = cardWithAssignedLimit("-200".bd)
+
+        // when
+        val result = card.block()
+
+        // then
+        assertThat(result.pendingChanges()).containsExactly(
+                DebitCardEvent.CardBlocked()
+        )
+    }
+
+    @Test
+    fun `should not allow to block a card when it is blocked`() {
+        // given
+        val card = cardWithAssignedLimit("-200".bd)
+
+        // when
+        val result = card
+                .block()
+                .block()
+
+        // then
+        assertThat(result.pendingChanges()).containsExactly(
+                DebitCardEvent.CardBlocked(),
+                DebitCardEvent.CardBlockedRejected()
+        )
+    }
+
+    @Test
+    fun `should not allow to charge a card when it is blocked`() {
+        // given
+        val card = cardWithAssignedLimit("-200".bd)
+
+        // when
+        val result = card.block()
+                .applyTransaction(charge(firstTransactionId, "10".bd))
+
+        // then
+        assertThat(result.pendingChanges()).containsExactly(
+                DebitCardEvent.CardBlocked(),
+                DebitCardEvent.TransactionRejected(firstTransactionId, "-10".bd)
+        )
+    }
+
+    @Test
+    fun `should allow to pay off a card when it is blocked`() {
+        // given
+        val card = cardWithAssignedLimit("-200".bd)
+
+        // when
+        val result = card.block()
+                .applyTransaction(payOff(firstTransactionId, "10".bd))
+
+        // then
+        assertThat(result.pendingChanges()).containsExactly(
+                DebitCardEvent.CardBlocked(),
+                DebitCardEvent.TransactionProcessed(firstTransactionId, "10".bd)
+        )
+
+    }
+
+    @Test
+    fun `should allow to unblock card when it is blocked`() {
+        // given
+        val card = cardWithAssignedLimit("-200".bd)
+
+        // when
+        val result = card.block()
+                .unblock()
+                .applyTransaction(charge(firstTransactionId, "10".bd))
+
+        // then
+        assertThat(result.pendingChanges()).containsExactly(
+                DebitCardEvent.CardBlocked(),
+                DebitCardEvent.CardUnblocked(),
+                DebitCardEvent.TransactionProcessed(firstTransactionId, "-10".bd)
+        )
+
+    }
+
+    @Test
+    fun `nothing should happen when someone try to unblock not blocked card `() {
+        // given
+        val card = cardWithAssignedLimit("-200".bd)
+
+        // when
+        val result = card.unblock()
+
+        // then
+        assertThat(result.pendingChanges()).containsExactly()
+    }
+
     private fun cardWithAssignedLimit(limit: BigDecimal): DebitCard = DebitCard.createNew()
             .assignLimit(limit)
             .flushChanges()
