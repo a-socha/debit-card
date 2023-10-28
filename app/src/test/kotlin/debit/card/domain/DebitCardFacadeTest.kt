@@ -12,17 +12,20 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.util.*
 
-internal class DebitCardFacadeTest {
+internal abstract class DebitCardFacadeTest {
+    protected abstract val module: DebitCardModule
+    protected abstract val repository: DebitCardRepository
 
-    private val repository = InMemoryDebitCardRepository()
+    val facade: DebitCardFacade
+        get() = module.facade(repository)
 
-    val facade = DebitCardModule().facade(repository)
+    protected abstract fun cleanState()
 
     private val cardUUID = UUID.randomUUID()
 
     @BeforeEach
     fun setup() {
-        repository.clean()
+        cleanState()
     }
 
     @Test
@@ -180,4 +183,14 @@ internal class DebitCardFacadeTest {
 
     private fun getSummaryById(cardUUID: UUID): DebitCardSummary =
             facade.getSummary(cardUUID).get()
+
+}
+
+internal class DebitCardFacadeUnitTest : DebitCardFacadeTest() {
+    override val module = DebitCardModule()
+    override val repository = InMemoryDebitCardRepository()
+    
+    override fun cleanState() {
+        repository.clean()
+    }
 }

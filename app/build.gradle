@@ -1,11 +1,46 @@
 plugins {
     id 'application'
     id "org.jetbrains.kotlin.jvm" version "1.9.10"
-    id 'org.springframework.boot' version '3.1.3'
+    id "org.jetbrains.kotlin.plugin.allopen" version "1.9.10"
+    id 'org.springframework.boot' version '3.1.5'
 }
 
 repositories {
     mavenCentral()
+}
+
+sourceSets {
+    intTest {
+        compileClasspath += main.output + test.compileClasspath
+        runtimeClasspath += main.output + test.compileClasspath
+    }
+}
+
+configurations {
+    intTestImplementation.extendsFrom implementation
+    intTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.intTest.output.classesDirs
+    classpath = sourceSets.intTest.runtimeClasspath
+    shouldRunAfter test
+
+    useJUnitPlatform()
+
+    testLogging {
+        events "passed"
+    }
+}
+
+check.dependsOn integrationTest
+
+kotlin.target.compilations.getByName("intTest") {
+    associateWith(target.compilations.getByName("test"))
 }
 
 dependencies {
@@ -14,13 +49,18 @@ dependencies {
     testImplementation(platform('org.jetbrains.kotlin:kotlin-bom:_'))
 
     implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.springframework.boot:spring-boot-starter-data-mongodb')
+
     implementation('io.vavr:vavr:_')
 
-
-    testImplementation('org.springframework.boot:spring-boot-starter-test')
     testImplementation('org.jetbrains.kotlin:kotlin-reflect')
     testImplementation('org.junit.jupiter:junit-jupiter:_')
     testImplementation('org.assertj:assertj-core:_')
+
+    intTestImplementation('org.springframework.boot:spring-boot-starter-test')
+    intTestImplementation('org.testcontainers:testcontainers:_')
+    intTestImplementation('org.testcontainers:mongodb:_')
+    intTestImplementation('org.springframework.boot:spring-boot-testcontainers')
 
     testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 }

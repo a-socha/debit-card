@@ -6,9 +6,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.util.*
 
-internal class InMemoryDebitCardRepositoryTest {
-
-    private val repository = InMemoryDebitCardRepository()
+internal abstract class DebitCardRepositoryTest {
+    protected abstract val repository: DebitCardRepository
 
     private val debitCardId = UUID.randomUUID()
 
@@ -48,4 +47,11 @@ internal class InMemoryDebitCardRepositoryTest {
         assertThat(readCard.isDefined).isTrue()
         assertThat(readCard.get()).isEqualTo(card.toSummary())
     }
+
+}
+
+internal class InMemoryDebitCardRepositoryTest : DebitCardRepositoryTest() {
+
+    override val repository = InMemoryDebitCardRepository()
+
 }
