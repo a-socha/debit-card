@@ -15,7 +15,7 @@ class DebitCardModule {
     }
 
     @Bean
-    @ConditionalOnProperty(name = DEBIT_CARD_REPOSITORY, havingValue = "stub")
+    @ConditionalOnProperty(name = DEBIT_CARD_REPOSITORY, havingValue = "stub", matchIfMissing = true)
     DebitCardRepository repository() {
         return new InMemoryDebitCardRepository();
     }

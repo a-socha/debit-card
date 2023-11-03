@@ -13,6 +13,7 @@ import static java.math.BigDecimal.ZERO;
 
 class DebitCard {
     private final UUID cardUUID;
+    private final Long version;
     private final List<DebitCardEvent> pendingChanges;
     private final Option<BigDecimal> debitLimit;
     private final BigDecimal balance;
@@ -20,12 +21,14 @@ class DebitCard {
 
     private DebitCard(
             UUID cardUUID,
+            Long version,
             List<DebitCardEvent> events,
             Option<BigDecimal> debitLimit,
             BigDecimal balance,
             boolean blocked
     ) {
         this.cardUUID = cardUUID;
+        this.version = version;
         this.pendingChanges = events;
         this.debitLimit = debitLimit;
         this.balance = balance;
@@ -69,7 +72,7 @@ class DebitCard {
 
 
     private DebitCard cardBlocked(DebitCardEvent.CardBlocked cardBlocked) {
-        return new DebitCard(cardUUID, registerChange(cardBlocked), debitLimit, balance, true);
+        return new DebitCard(cardUUID, version, registerChange(cardBlocked), debitLimit, balance, true);
     }
 
     private DebitCard cardBlockedRejected(DebitCardEvent.CardBlockedRejected cardBlockedRejected) {
@@ -77,11 +80,11 @@ class DebitCard {
     }
 
     private DebitCard cardUnblocked(DebitCardEvent.CardUnblocked cardUnblocked) {
-        return new DebitCard(cardUUID, registerChange(cardUnblocked), debitLimit, balance, false);
+        return new DebitCard(cardUUID, version, registerChange(cardUnblocked), debitLimit, balance, false);
     }
 
     private DebitCard transactionAccepted(DebitCardEvent.TransactionAccepted transactionAccepted) {
-        return new DebitCard(cardUUID, registerChange(transactionAccepted), debitLimit, balance.add(transactionAccepted.value()), blocked);
+        return new DebitCard(cardUUID, version, registerChange(transactionAccepted), debitLimit, balance.add(transactionAccepted.value()), blocked);
     }
 
     private DebitCard transactionRejected(DebitCardEvent.TransactionRejected transactionRejected) {
@@ -89,7 +92,7 @@ class DebitCard {
     }
 
     private DebitCard limitAssigned(DebitCardEvent.LimitAssigned created) {
-        return new DebitCard(cardUUID, registerChange(created), some(created.limit()), ZERO, blocked);
+        return new DebitCard(cardUUID, version, registerChange(created), some(created.limit()), ZERO, blocked);
     }
 
     private List<DebitCardEvent> registerChange(DebitCardEvent debitCardEvent) {
@@ -97,11 +100,11 @@ class DebitCard {
     }
 
     private DebitCard rejectOperation(DebitCardEvent rejectionEvent) {
-        return new DebitCard(cardUUID, registerChange(rejectionEvent), debitLimit, balance, blocked);
+        return new DebitCard(cardUUID, version, registerChange(rejectionEvent), debitLimit, balance, blocked);
     }
 
     DebitCard flushChanges() {
-        return new DebitCard(cardUUID, List.empty(), debitLimit, balance, blocked);
+        return new DebitCard(cardUUID, version, List.empty(), debitLimit, balance, blocked);
     }
 
     static DebitCard createNew() {
@@ -109,11 +112,14 @@ class DebitCard {
     }
 
     static DebitCard createNew(UUID cardUUID) {
-        return new DebitCard(cardUUID, List.empty(), none(), ZERO, false);
+        return createNew(cardUUID, null);
+    }
+    static DebitCard createNew(UUID cardUUID, Long version) {
+        return new DebitCard(cardUUID, version, List.empty(), none(), ZERO, false);
     }
 
-    static DebitCard fromEvents(UUID cardUUID, List<DebitCardEvent> events) {
-        var cardWithChanges = events.foldLeft(createNew(cardUUID), DebitCard::applyWithAppend);
+    static DebitCard fromEvents(UUID cardUUID, Long version, List<DebitCardEvent> events) {
+        var cardWithChanges = events.foldLeft(createNew(cardUUID, version), DebitCard::applyWithAppend);
         return cardWithChanges.flushChanges();
     }
 
@@ -150,6 +156,10 @@ class DebitCard {
                 debitLimit,
                 blocked
         );
+    }
+
+    Long version() {
+        return this.version;
     }
 }
 

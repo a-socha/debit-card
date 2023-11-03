@@ -4,6 +4,7 @@ import debit.card.view.DebitCardSummary;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
 
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,7 +17,7 @@ interface DebitCardRepository {
 }
 
 class InMemoryDebitCardRepository implements DebitCardRepository {
-    private final ConcurrentHashMap<UUID, List<DebitCardEvent>> inMemoryEventStore;
+    private final ConcurrentHashMap<UUID, VersionedEvents> inMemoryEventStore;
 
     InMemoryDebitCardRepository() {
         this.inMemoryEventStore = new ConcurrentHashMap<>();
@@ -29,8 +30,7 @@ class InMemoryDebitCardRepository implements DebitCardRepository {
     @Override
     public Option<DebitCard> getByUUID(UUID cardUUID) {
         return Option.some(inMemoryEventStore.get(cardUUID))
-                .map(List::ofAll)
-                .map(events -> DebitCard.fromEvents(cardUUID, events));
+                .map(versionedEvents -> DebitCard.fromEvents(cardUUID, versionedEvents.version(), versionedEvents.events()));
     }
 
     @Override
@@ -41,8 +41,22 @@ class InMemoryDebitCardRepository implements DebitCardRepository {
     @Override
     public void save(DebitCard card) {
         var uuid = card.toSummary().cardUUID();
-        inMemoryEventStore.computeIfPresent(uuid, (key, events) -> events.appendAll(card.pendingChanges()));
-        inMemoryEventStore.putIfAbsent(uuid, card.pendingChanges());
+        inMemoryEventStore.computeIfPresent(uuid, (key, events) -> events.appendAll(card.version(), card.pendingChanges()));
+        inMemoryEventStore.putIfAbsent(uuid, new VersionedEvents(0L, card.pendingChanges()));
         card.flushChanges();
+    }
+}
+
+record VersionedEvents(
+        Long version,
+        List<DebitCardEvent> events
+) {
+
+    public VersionedEvents appendAll(Long version, List<DebitCardEvent> debitCardEvents) {
+        if (Objects.equals(version, this.version)) {
+            return new VersionedEvents(this.version + 1, events.appendAll(debitCardEvents));
+        } else {
+            throw new RuntimeException("Optimistic locking exception");
+        }
     }
 }
