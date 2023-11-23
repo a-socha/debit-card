@@ -49,9 +49,12 @@ dependencies {
     testImplementation(platform('org.jetbrains.kotlin:kotlin-bom:_'))
 
     implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.springframework.boot:spring-boot-starter-actuator')
+
     implementation('org.springframework.boot:spring-boot-starter-data-mongodb')
 
     implementation('io.vavr:vavr:_')
+    implementation('io.vavr:vavr-jackson:_')
 
 
     testImplementation('org.jetbrains.kotlin:kotlin-reflect')

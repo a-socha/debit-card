@@ -1,34 +1,41 @@
 package debit.card.domain;
 
 import debit.card.domain.commands.CardCommand;
+import io.vavr.Function2;
 import io.vavr.collection.List;
+import io.vavr.control.Option;
+
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class DebitCardOperationResult<T extends CardCommand> {
     private final T cardCommand;
-    private final List<DebitCardError> errors;
+    private final Option<DebitCardError> error;
 
-    private DebitCardOperationResult(T cardCommand, List<DebitCardError> errors) {
+    private DebitCardOperationResult(T cardCommand, Option<DebitCardError> error) {
         this.cardCommand = cardCommand;
-        this.errors = errors;
+        this.error = error;
     }
 
     public boolean isSuccess() {
-        return errors.isEmpty();
+        return error.isEmpty();
     }
 
-    public List<DebitCardError> errors() {
-        return errors;
+    public DebitCardError error() {
+        return error.get();
     }
 
-    static <T extends CardCommand> DebitCardOperationResult<T> success(T cardCommand) {
-        return new DebitCardOperationResult<>(cardCommand, List.empty());
+    public <U> U fold(Function2<T, DebitCardError, U> onError, Function<T, U> onSuccess) {
+        return error.map(error -> onError.apply(cardCommand, error))
+                .getOrElse(() -> onSuccess.apply(cardCommand));
     }
 
-    static <T extends CardCommand> DebitCardOperationResult<T> failed(T cardCommand, List<DebitCardError> errors) {
-        return new DebitCardOperationResult<>(cardCommand, errors);
+    public static <T extends CardCommand> DebitCardOperationResult<T> success(T cardCommand) {
+        return new DebitCardOperationResult<>(cardCommand, Option.none());
     }
-    static <T extends CardCommand> DebitCardOperationResult<T> failed(T cardCommand, DebitCardError error) {
-        return new DebitCardOperationResult<>(cardCommand, List.of(error));
+
+    public static <T extends CardCommand> DebitCardOperationResult<T> failed(T cardCommand, DebitCardError error) {
+        return new DebitCardOperationResult<>(cardCommand, Option.some(error));
     }
 }
 

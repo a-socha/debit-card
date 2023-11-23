@@ -1,27 +1,27 @@
 package debit.card.domain;
 
 public sealed interface DebitCardError permits
-        CardNotFoundError,
-        LimitAssignError,
-        CannotChargeError,
-        CannotBlockCardError,
-        CannotPayOffError {
-}
+        DebitCardError.CardNotFoundError,
+        DebitCardError.LimitAssignError,
+        DebitCardError.CannotChargeError,
+        DebitCardError.CannotBlockCardError,
+        DebitCardError.CannotPayOffError {
+    record CardNotFoundError() implements DebitCardError {
+    }
 
-record CardNotFoundError() implements DebitCardError {
-}
+    sealed interface LimitAssignError extends DebitCardError permits LimitAlreadyAssigned {
+    }
 
-sealed interface LimitAssignError extends DebitCardError permits LimitAlreadyAssigned {
-}
+    record LimitAlreadyAssigned() implements LimitAssignError {
+    }
 
-record LimitAlreadyAssigned() implements LimitAssignError {
-}
+    record CannotChargeError() implements DebitCardError {
+    }
 
-record CannotChargeError() implements DebitCardError {
-}
+    record CannotBlockCardError() implements DebitCardError {
+    }
 
-record CannotBlockCardError() implements DebitCardError {
-}
+    record CannotPayOffError() implements DebitCardError {
+    }
 
-record CannotPayOffError() implements DebitCardError {
 }

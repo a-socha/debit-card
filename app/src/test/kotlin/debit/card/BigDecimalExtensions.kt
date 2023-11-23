@@ -1,4 +1,4 @@
 package debit.card
 
-internal val String.bd
+val String.bd
     get() = this.toBigDecimal()

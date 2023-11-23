@@ -3,3 +3,7 @@ services:
     build:
       context: app
       dockerfile: ./Dockerfile
+  mongodb:
+    image: mongo:4.0.10
+    ports:
+      - 27017:27017

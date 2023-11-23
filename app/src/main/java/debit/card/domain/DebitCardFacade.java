@@ -8,6 +8,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static debit.card.domain.DebitCardError.*;
+
 public class DebitCardFacade {
     private final DebitCardRepository debitCardRepository;
 

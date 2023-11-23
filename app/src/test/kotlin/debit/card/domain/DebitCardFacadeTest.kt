@@ -2,6 +2,7 @@ package debit.card.domain
 
 import debit.card.bd
 import debit.card.domain.DebitCard.createNew
+import debit.card.domain.DebitCardError.*
 import debit.card.domain.commands.AssignLimitCommand
 import debit.card.domain.commands.BlockCardCommand
 import debit.card.domain.commands.ChargeCardCommand
@@ -64,7 +65,7 @@ internal abstract class DebitCardFacadeTest {
 
         // then
         assertThat(result.isSuccess).isFalse()
-        assertThat(result.errors()).containsExactly(LimitAlreadyAssigned())
+        assertThat(result.error()).isEqualTo(LimitAlreadyAssigned())
         val cardSummary = getSummaryById(cardUUID)
         assertThat(cardSummary.limit.get()).isEqualTo("20".bd)
     }
@@ -124,7 +125,7 @@ internal abstract class DebitCardFacadeTest {
 
         // then
         assertThat(result.isSuccess).isFalse()
-        assertThat(result.errors()).containsExactly(CannotBlockCardError())
+        assertThat(result.error()).isEqualTo(CannotBlockCardError())
         val summary = getSummaryById(cardUUID)
         assertThat(summary.blocked).isTrue()
     }
@@ -139,7 +140,7 @@ internal abstract class DebitCardFacadeTest {
 
         // then
         assertThat(result.isSuccess).isFalse()
-        assertThat(result.errors()).containsExactly(CannotChargeError())
+        assertThat(result.error()).isEqualTo(CannotChargeError())
         val summary = getSummaryById(cardUUID)
         assertThat(summary.blocked).isTrue()
         assertThat(summary.balance).isEqualTo("0")
