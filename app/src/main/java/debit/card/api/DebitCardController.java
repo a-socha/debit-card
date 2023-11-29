@@ -1,10 +1,7 @@
 package debit.card.api;
 
 import debit.card.domain.DebitCardFacade;
-import debit.card.domain.commands.AssignLimitCommand;
-import debit.card.domain.commands.BlockCardCommand;
-import debit.card.domain.commands.ChargeCardCommand;
-import debit.card.domain.commands.PayOffCardCommand;
+import debit.card.domain.commands.*;
 import io.vavr.collection.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +71,14 @@ class DebitCardController {
     @PutMapping("/{debitCardUUID}/block")
     ResponseEntity<?> blockCard(@PathVariable(name = "debitCardUUID") UUID debitCardUUID) {
         return debitCardFacade.blockCard(new BlockCardCommand(debitCardUUID)).fold(
+                DebitCardErrorMapper::mapErrorToResultEntity,
+                ResponseEntity::ok
+        );
+    }
+
+    @PutMapping("/{debitCardUUID}/unblock")
+    ResponseEntity<?> unblockCard(@PathVariable(name = "debitCardUUID") UUID debitCardUUID) {
+        return debitCardFacade.unblockCard(new UnblockCardCommand(debitCardUUID)).fold(
                 DebitCardErrorMapper::mapErrorToResultEntity,
                 ResponseEntity::ok
         );

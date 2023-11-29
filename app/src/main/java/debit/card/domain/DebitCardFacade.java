@@ -104,6 +104,19 @@ public class DebitCardFacade {
         return operationResult;
     }
 
+    public DebitCardOperationResult<UnblockCardCommand> unblockCard(UnblockCardCommand unblockCardCommand) {
+        return runOperationOnCardWithUuid(
+                unblockCardCommand,
+                (card) -> handleUnblockCard(card, unblockCardCommand)
+        );
+    }
+
+    private DebitCardOperationResult<UnblockCardCommand> handleUnblockCard(DebitCard card, UnblockCardCommand unblockCardCommand) {
+        var cardAfterBlock = card.unblock();
+        debitCardRepository.save(cardAfterBlock);
+        return DebitCardOperationResult.success(unblockCardCommand);
+    }
+
     private <T extends CardCommand> DebitCardOperationResult<T> runOperationOnCardWithUuid(
             T cardCommand,
             Function<DebitCard, DebitCardOperationResult<T>> operation) {

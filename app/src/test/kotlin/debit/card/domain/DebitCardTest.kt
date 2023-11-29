@@ -212,7 +212,7 @@ internal class DebitCardTest {
         val result = card.unblock()
 
         // then
-        assertThat(result.pendingChanges()).containsExactly()
+        assertThat(result.pendingChanges()).isEmpty()
     }
 
     private fun cardWithAssignedLimit(limit: BigDecimal): DebitCard = DebitCard.createNew()

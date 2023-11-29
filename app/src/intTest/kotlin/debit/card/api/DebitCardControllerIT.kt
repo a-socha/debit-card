@@ -3,10 +3,7 @@ package debit.card.api
 import debit.card.bd
 import debit.card.domain.*
 import debit.card.domain.DebitCardError.*
-import debit.card.domain.commands.AssignLimitCommand
-import debit.card.domain.commands.BlockCardCommand
-import debit.card.domain.commands.ChargeCardCommand
-import debit.card.domain.commands.PayOffCardCommand
+import debit.card.domain.commands.*
 import debit.card.view.DebitCardSummary
 import io.vavr.control.Option
 import org.junit.jupiter.api.Named.named
@@ -351,7 +348,7 @@ internal class DebitCardControllerIT {
     }
 
     @ParameterizedTest
-    @MethodSource("payOffErrors")
+    @MethodSource("blockErrors")
     fun `should return error when block card failed`(
             debitCardError: DebitCardError, errorName: String, status: Int
     ) {
@@ -377,6 +374,55 @@ internal class DebitCardControllerIT {
                     }
                 }
     }
+
+    @Test
+    fun `should return 200 when card unblock successfull`() {
+        // given
+        given(debitCardFacade.unblockCard(UnblockCardCommand(debitCardId)))
+                .willReturn(DebitCardOperationResult.success(UnblockCardCommand(debitCardId)))
+
+        // expect
+        mockMvc.put("/v1/debit-cards/$debitCardId/unblock")
+                .andDo { print() }
+                .andExpect {
+                    status { isOk() }
+                    content {
+                        contentType("application/json")
+                        json("""
+                            {
+                                   "cardUUID": "$debitCardId"
+                            }
+                        """.trimIndent())
+                    }
+                }
+    }
+
+    @Test
+    fun `should return 404 error when card to unblock is not found`(
+    ) {
+        // given
+        given(debitCardFacade.unblockCard(UnblockCardCommand(debitCardId)))
+                .willReturn(DebitCardOperationResult.failed(UnblockCardCommand(debitCardId), CardNotFoundError()))
+
+        // expect
+        mockMvc.put("/v1/debit-cards/$debitCardId/unblock")
+                .andDo { print() }
+                .andExpect {
+                    status { isNotFound() }
+                    content {
+                        contentType("application/json")
+                        json("""
+                            {
+                                "type": "CardNotFoundError",
+                                "details": {
+                                    "cardUUID": "$debitCardId"
+                                }
+                            }
+                        """.trimIndent())
+                    }
+                }
+    }
+
 
     companion object {
         @JvmStatic

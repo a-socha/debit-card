@@ -3,10 +3,7 @@ package debit.card.domain
 import debit.card.bd
 import debit.card.domain.DebitCard.createNew
 import debit.card.domain.DebitCardError.*
-import debit.card.domain.commands.AssignLimitCommand
-import debit.card.domain.commands.BlockCardCommand
-import debit.card.domain.commands.ChargeCardCommand
-import debit.card.domain.commands.PayOffCardCommand
+import debit.card.domain.commands.*
 import debit.card.view.DebitCardSummary
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -176,6 +173,34 @@ internal abstract class DebitCardFacadeTest {
         val summary = getSummaryById(cardUUID)
         assertThat(summary.balance).isEqualTo("15")
         assertThat(summary.limit.get()).isEqualTo("-20")
+    }
+
+    @Test
+    fun `should be able to unblock not blocked card`() {
+        // given
+        thereIsACard(createNew(cardUUID).assignLimit("-20".bd))
+
+        // when
+        val result = facade.unblockCard(UnblockCardCommand(cardUUID))
+
+        // then
+        assertThat(result.isSuccess).isTrue()
+        val summary = getSummaryById(cardUUID)
+        assertThat(summary.blocked).isEqualTo(false)
+    }
+
+    @Test
+    fun `should be able unblock card once it is blocked`() {
+        // given
+        thereIsACard(createNew(cardUUID).assignLimit("-20".bd).block())
+
+        // when
+        val result = facade.unblockCard(UnblockCardCommand(cardUUID))
+
+        // then
+        assertThat(result.isSuccess).isTrue()
+        val summary = getSummaryById(cardUUID)
+        assertThat(summary.blocked).isEqualTo(false)
     }
 
     private fun thereIsACard(card: DebitCard) {
