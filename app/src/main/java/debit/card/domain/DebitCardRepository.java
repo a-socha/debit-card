@@ -29,7 +29,7 @@ class InMemoryDebitCardRepository implements DebitCardRepository {
 
     @Override
     public Option<DebitCard> getByUUID(UUID cardUUID) {
-        return Option.some(inMemoryEventStore.get(cardUUID))
+        return Option.of(inMemoryEventStore.get(cardUUID))
                 .map(versionedEvents -> DebitCard.fromEvents(cardUUID, versionedEvents.version(), versionedEvents.events()));
     }
 

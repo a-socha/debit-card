@@ -7,8 +7,14 @@ import debit.card.domain.commands.*
 import debit.card.view.DebitCardSummary
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Named
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.Arguments.arguments
+import org.junit.jupiter.params.provider.MethodSource
 import java.util.*
+import java.util.stream.Stream
 
 internal abstract class DebitCardFacadeTest {
     protected abstract val module: DebitCardModule
@@ -18,8 +24,6 @@ internal abstract class DebitCardFacadeTest {
         get() = module.facade(repository)
 
     protected abstract fun cleanState()
-
-    private val cardUUID = UUID.randomUUID()
 
     @BeforeEach
     fun setup() {
@@ -203,6 +207,19 @@ internal abstract class DebitCardFacadeTest {
         assertThat(summary.blocked).isEqualTo(false)
     }
 
+    @ParameterizedTest
+    @MethodSource("cardOperations")
+    fun `should return card not found error when there is no card`(
+            cardOperation: (DebitCardFacade) -> DebitCardOperationResult<CardCommand>
+    ) {
+        // when
+        val result = cardOperation(facade)
+
+        // then
+        assertThat(result.isSuccess).isFalse()
+        assertThat(result.error()).isEqualTo(CardNotFoundError())
+    }
+
     private fun thereIsACard(card: DebitCard) {
         repository.save(card)
     }
@@ -210,12 +227,25 @@ internal abstract class DebitCardFacadeTest {
     private fun getSummaryById(cardUUID: UUID): DebitCardSummary =
             facade.getSummary(cardUUID).get()
 
+    companion object {
+        private val cardUUID = UUID.randomUUID()
+
+        @JvmStatic
+        fun cardOperations() = Stream.of(
+                Named.named("Assign Limit", { facade: DebitCardFacade -> facade.assignLimitToCard(AssignLimitCommand(cardUUID, "5".bd)) }),
+                Named.named("Charge Card", { facade: DebitCardFacade -> facade.chargeCard(ChargeCardCommand(cardUUID, UUID.randomUUID(), "10".bd)) }),
+                Named.named("Pay Off Card", { facade: DebitCardFacade -> facade.payOffCard(PayOffCardCommand(cardUUID, UUID.randomUUID(), "10".bd)) }),
+                Named.named("Block Card", { facade: DebitCardFacade -> facade.blockCard(BlockCardCommand(cardUUID)) }),
+                Named.named("Unblock Card", { facade: DebitCardFacade -> facade.unblockCard(UnblockCardCommand(cardUUID)) })
+        )
+    }
+
 }
 
 internal class DebitCardFacadeUnitTest : DebitCardFacadeTest() {
     override val module = DebitCardModule()
     override val repository = InMemoryDebitCardRepository()
-    
+
     override fun cleanState() {
         repository.clean()
     }
