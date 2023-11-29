@@ -28,80 +28,49 @@ public class DebitCardFacade {
     }
 
     public DebitCardOperationResult<AssignLimitCommand> assignLimitToCard(AssignLimitCommand assignLimitCommand) {
-        return debitCardRepository.getByUUID(assignLimitCommand.cardUUID())
-                .fold(
-                        handleNotFoundCard(assignLimitCommand),
-                        handleAssignLimitToCard(assignLimitCommand)
-                );
+        return runOperationOnCardWithUuid(assignLimitCommand, card -> handleAssignLimitToCard(card, assignLimitCommand));
     }
 
-    private static <T extends CardCommand> Supplier<DebitCardOperationResult<T>> handleNotFoundCard(T assignLimitCommand) {
-        return () -> DebitCardOperationResult.failed(assignLimitCommand, new CardNotFoundError());
-    }
-
-    private Function<DebitCard, DebitCardOperationResult<AssignLimitCommand>> handleAssignLimitToCard(AssignLimitCommand assignLimitCommand) {
-        return card -> {
-            var cardWithAssignedLimit = card.assignLimit(assignLimitCommand.limit());
-            debitCardRepository.save(cardWithAssignedLimit);
-            return cardWithAssignedLimit.pendingChanges().singleOption()
-                    .fold(
-                            () -> DebitCardOperationResult.failed(assignLimitCommand, new LimitAlreadyAssigned()),
-                            (change) -> DebitCardOperationResult.success(assignLimitCommand)
-                    );
-        };
+    private DebitCardOperationResult<AssignLimitCommand> handleAssignLimitToCard(DebitCard card, AssignLimitCommand assignLimitCommand) {
+        return handleCardOperationThatMayFail(
+                () -> card.assignLimit(assignLimitCommand.limit()),
+                assignLimitCommand,
+                LimitAlreadyAssigned::new
+        );
     }
 
     public DebitCardOperationResult<ChargeCardCommand> chargeCard(ChargeCardCommand chargeCardCommand) {
-        return debitCardRepository.getByUUID(chargeCardCommand.cardUUID())
-                .fold(
-                        handleNotFoundCard(chargeCardCommand),
-                        (card) -> handleCardCharge(card, chargeCardCommand)
-                );
+        return runOperationOnCardWithUuid(chargeCardCommand, card -> handleCardCharge(card, chargeCardCommand));
     }
 
-    private DebitCardOperationResult<ChargeCardCommand> handleCardCharge(DebitCard debitCard, ChargeCardCommand command) {
-        var debitCardAfterTransaction = debitCard.applyTransaction(TransactionCommand.charge(command.transactionUUID(), command.amount()));
-        var result = debitCardAfterTransaction.pendingChanges().single();
-
-        debitCardRepository.save(debitCardAfterTransaction);
-
-        if (result instanceof DebitCardEvent.Success) {
-            return DebitCardOperationResult.success(command);
-        } else {
-            return DebitCardOperationResult.failed(command, new CannotChargeError());
-        }
+    private DebitCardOperationResult<ChargeCardCommand> handleCardCharge(DebitCard card, ChargeCardCommand command) {
+        return handleCardOperationThatMayFail(
+                () -> card.applyTransaction(TransactionCommand.charge(command.transactionUUID(), command.amount())),
+                command,
+                CannotChargeError::new
+        );
     }
 
     public DebitCardOperationResult<PayOffCardCommand> payOffCard(PayOffCardCommand chargeCardCommand) {
-        return runOperationOnCardWithUuid(chargeCardCommand, (card) -> handlePayOffCard(card, chargeCardCommand));
+        return runOperationOnCardWithUuid(
+                chargeCardCommand,
+                (card) -> handlePayOffCard(card, chargeCardCommand)
+        );
     }
 
     private DebitCardOperationResult<PayOffCardCommand> handlePayOffCard(DebitCard card, PayOffCardCommand command) {
-        var cardAfterOperation = card.applyTransaction(TransactionCommand.payOff(command.transactionUUID(), command.amount()));
-        var result = cardAfterOperation.pendingChanges().single();
-        debitCardRepository.save(cardAfterOperation);
-        if (result instanceof DebitCardEvent.Success) {
-            return DebitCardOperationResult.success(command);
-        } else {
-            return DebitCardOperationResult.failed(command, new CannotPayOffError());
-        }
+        return handleCardOperationThatMayFail(
+                () -> card.applyTransaction(TransactionCommand.payOff(command.transactionUUID(), command.amount())),
+                command,
+                CannotPayOffError::new
+        );
     }
 
     public DebitCardOperationResult<BlockCardCommand> blockCard(BlockCardCommand blockCardCommand) {
         return runOperationOnCardWithUuid(
                 blockCardCommand,
-                (card) -> handleBlockCard(card, blockCardCommand)
+                (card) -> handleCardOperationThatMayFail(card::block, blockCardCommand, CannotBlockCardError::new)
         );
-    }
-
-    private DebitCardOperationResult<BlockCardCommand> handleBlockCard(DebitCard card, BlockCardCommand blockCardCommand) {
-        var cardAfterBlock = card.block();
-        var result = cardAfterBlock.pendingChanges().single();
-        var operationResult = result instanceof DebitCardEvent.Success
-                ? DebitCardOperationResult.success(blockCardCommand)
-                : DebitCardOperationResult.failed(blockCardCommand, new CannotBlockCardError());
-        debitCardRepository.save(cardAfterBlock);
-        return operationResult;
     }
 
     public DebitCardOperationResult<UnblockCardCommand> unblockCard(UnblockCardCommand unblockCardCommand) {
@@ -125,6 +94,31 @@ public class DebitCardFacade {
                         handleNotFoundCard(cardCommand),
                         operation
                 );
+    }
+
+    private <T extends CardCommand> DebitCardOperationResult<T> handleCardOperationThatMayFail(
+            Supplier<DebitCard> cardOperationResult,
+            T cardCommand,
+            Supplier<DebitCardError> debitCardError
+    ) {
+        var cardAfterOperation = cardOperationResult.get();
+        debitCardRepository.save(cardAfterOperation);
+        return cardAfterOperation.pendingChanges().singleOption()
+                .fold(
+                        () -> DebitCardOperationResult.failed(cardCommand, debitCardError.get()),
+                        (result) -> handleFailedResult(result, cardCommand, debitCardError)
+                );
+    }
+
+    private <T extends CardCommand> DebitCardOperationResult<T> handleFailedResult(DebitCardEvent result, T cardCommand, Supplier<DebitCardError> debitCardError) {
+        return result instanceof DebitCardEvent.Success
+                ? DebitCardOperationResult.success(cardCommand)
+                : DebitCardOperationResult.failed(cardCommand, debitCardError.get());
+    }
+
+
+    private static <T extends CardCommand> Supplier<DebitCardOperationResult<T>> handleNotFoundCard(T assignLimitCommand) {
+        return () -> DebitCardOperationResult.failed(assignLimitCommand, new CardNotFoundError());
     }
 
 }
