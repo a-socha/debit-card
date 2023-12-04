@@ -2,6 +2,6 @@ plugins {
     id("de.fayard.refreshVersions") version "0.60.2"
 }
 
-rootProject.name = 'debit-card'
+rootProject.name = "debit-card"
 
-include('app')
+include("app")
