@@ -2,11 +2,10 @@ import org.jetbrains.kotlin.gradle.tasks.*
 
 plugins {
     id("application")
-    id("org.jetbrains.kotlin.jvm") version "1.9.10"
-    id("org.jetbrains.kotlin.plugin.allopen") version "1.9.10"
+    id("org.jetbrains.kotlin.jvm") version "1.9.20"
+    id("org.jetbrains.kotlin.plugin.allopen") version "1.9.20"
     id("org.springframework.boot") version "3.1.5"
     id("it.nicolasfarabegoli.conventional-commits") version "3.1.3"
-    id("io.github.rethab.semantic-release") version "0.0.1"
 }
 
 repositories {
@@ -83,8 +82,12 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(20)
+        languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+kotlin {
+    jvmToolchain(20)
 }
 
 application {

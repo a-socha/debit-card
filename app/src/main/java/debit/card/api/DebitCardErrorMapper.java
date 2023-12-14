@@ -14,10 +14,6 @@ class DebitCardErrorMapper {
         return switch (error) {
             case CardNotFoundError cardNotFoundError -> notFound(command, cardNotFoundError);
             default -> badRequest(command, error);
-//            case CannotChargeError cannotChargeError -> badRequest(command, cannotChargeError);
-//            case CannotBlockCardError cannotBlockCardError -> badRequest(command, cannotBlockCardError);
-//            case CannotPayOffError cannotPayOffError -> badRequest(command, cannotPayOffError);
-//            case LimitAlreadyAssigned limitAlreadyAssigned -> badRequest(command, limitAlreadyAssigned)
         };
     }
 
