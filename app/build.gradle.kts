@@ -8,10 +8,22 @@ plugins {
     id("it.nicolasfarabegoli.conventional-commits") version "3.1.3"
 }
 
+buildscript {
+    repositories {
+        maven {
+            url = uri("../../local-gradle-plugin-repo")
+        }
+    }
+    dependencies {
+        classpath("io.github.asocha.conventional.commits:io.github.asocha.conventional.commits.gradle.plugin:0.0.1")
+    }
+}
+
+apply(plugin = "io.github.asocha.conventional.commits")
+
 repositories {
     mavenCentral()
 }
-
 
 sourceSets {
     val intTest by creating {
