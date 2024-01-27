@@ -3,6 +3,8 @@ services:
     build:
       context: app
       dockerfile: ./Dockerfile
+    environment:
+      MONGO_HOST: mongodb
   mongodb:
     image: mongo:4.0.10
     ports:

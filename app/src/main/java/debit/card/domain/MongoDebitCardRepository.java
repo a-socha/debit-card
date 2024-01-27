@@ -3,9 +3,12 @@ package debit.card.domain;
 import debit.card.view.DebitCardSummary;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.repository.CrudRepository;
 
 import java.util.UUID;
+
+import static debit.card.domain.DebitCardModule.DEBIT_CARD_REPOSITORY;
 
 class MongoDebitCardRepository implements DebitCardRepository {
     private final MongoDebitCardCrudRepository crudRepository;
@@ -46,5 +49,6 @@ class MongoDebitCardRepository implements DebitCardRepository {
     }
 }
 
+@ConditionalOnProperty(name = DEBIT_CARD_REPOSITORY, havingValue = "mongo")
 interface MongoDebitCardCrudRepository extends CrudRepository<DebitCardEntity, UUID> {
 }
